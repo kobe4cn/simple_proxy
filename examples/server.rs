@@ -80,13 +80,7 @@ impl AppState {
         let now = Utc::now();
 
         // Hash password with Argon2
-        let salt = SaltString::generate(&mut OsRng);
-        let password_hash = self
-            .inner
-            .argon2
-            .hash_password(password.as_bytes(), &salt)
-            .map_err(|e| e.to_string())?
-            .to_string();
+        let password_hash = hash_password(&self.inner.argon2, password)?;
 
         let user = User {
             id,
@@ -114,13 +108,7 @@ impl AppState {
 
         if let Some(password) = update.password {
             // Hash new password
-            let salt = SaltString::generate(&mut OsRng);
-            let password_hash = self
-                .inner
-                .argon2
-                .hash_password(password.as_bytes(), &salt)
-                .map_err(|e| e.to_string())?
-                .to_string();
+            let password_hash = hash_password(&self.inner.argon2, password)?;
             user.password = password_hash;
         }
 
@@ -147,6 +135,15 @@ impl AppState {
     }
 }
 
+fn hash_password(argon2: &Argon2<'static>, password: String) -> Result<String, BoxError> {
+    let salt = SaltString::generate(&mut OsRng);
+    let password_hash = argon2
+        .hash_password(password.as_bytes(), &salt)
+        .map_err(|e| e.to_string())?
+        .to_string();
+    Ok(password_hash)
+}
+
 #[tokio::main]
 async fn main() {
     // Initialize tracing
@@ -165,7 +162,7 @@ async fn main() {
     let app = Router::new()
         .route("/users", get(get_users).post(create_user))
         .route(
-            "/users/:id",
+            "/users/{id}",
             get(get_user).put(update_user).delete(delete_user),
         )
         .route("/health", get(health_check))
