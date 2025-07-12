@@ -134,7 +134,6 @@ impl AppState {
         true
     }
 }
-
 fn hash_password(argon2: &Argon2<'static>, password: String) -> Result<String, BoxError> {
     let salt = SaltString::generate(&mut OsRng);
     let password_hash = argon2
