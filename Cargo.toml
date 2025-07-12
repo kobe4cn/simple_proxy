@@ -1,0 +1,33 @@
+[package]
+name = "simple_proxy"
+version = "0.1.0"
+authors = ["Kevin Yang <kevin.yang.xgz@gmail.com>"]
+edition = "2024"
+license = "MIT"
+documentation = "https://docs.rs/"
+repository = "https://github.com/kobe4cn/simple_proxy"
+homepage = "https://github.com/kobe4cn/simple_proxy"
+description = """
+A simple proxy server.
+"""
+readme = "README.md"
+categories = ["development-tools"]
+keywords = []
+
+[dependencies]
+axum = "0.8"
+dashmap = "6.1.0"
+argon2 = "0.5.3"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+tower = { version = "0.5.2", features = ["timeout"] }
+tower-http = { version = "0.6.6", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+rand_core = { version = "0.6.4", features = ["getrandom"] }
+
+[[bin]]
+name = "server"
+path = "examples/server.rs"
