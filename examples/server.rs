@@ -28,7 +28,7 @@ struct User {
     id: u64,
     name: String,
     email: String,
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing, skip_deserializing)]
     password: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -252,5 +252,316 @@ async fn health_check(State(state): State<AppState>) -> impl IntoResponse {
                 "timestamp": Utc::now()
             })),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_app_state_new() {
+        let state = AppState::new();
+        assert_eq!(state.get_all_users().len(), 0);
+        assert!(state.health());
+    }
+
+    #[test]
+    fn test_create_user() {
+        let state = AppState::new();
+
+        let user = state
+            .create_user(
+                "Alice".to_string(),
+                "alice@example.com".to_string(),
+                "password123".to_string(),
+            )
+            .expect("Failed to create user");
+
+        assert_eq!(user.id, 1);
+        assert_eq!(user.name, "Alice");
+        assert_eq!(user.email, "alice@example.com");
+        assert!(!user.password.is_empty());
+        assert!(user.password.starts_with("$argon2"));
+        assert_eq!(state.get_all_users().len(), 1);
+    }
+
+    #[test]
+    fn test_create_multiple_users() {
+        let state = AppState::new();
+
+        let user1 = state
+            .create_user(
+                "Alice".to_string(),
+                "alice@example.com".to_string(),
+                "password123".to_string(),
+            )
+            .expect("Failed to create user1");
+
+        let user2 = state
+            .create_user(
+                "Bob".to_string(),
+                "bob@example.com".to_string(),
+                "password456".to_string(),
+            )
+            .expect("Failed to create user2");
+
+        assert_eq!(user1.id, 1);
+        assert_eq!(user2.id, 2);
+        assert_eq!(state.get_all_users().len(), 2);
+    }
+
+    #[test]
+    fn test_get_user() {
+        let state = AppState::new();
+
+        let created_user = state
+            .create_user(
+                "Alice".to_string(),
+                "alice@example.com".to_string(),
+                "password123".to_string(),
+            )
+            .expect("Failed to create user");
+
+        let retrieved_user = state.get_user(created_user.id).expect("User not found");
+
+        assert_eq!(retrieved_user.id, created_user.id);
+        assert_eq!(retrieved_user.name, created_user.name);
+        assert_eq!(retrieved_user.email, created_user.email);
+        assert_eq!(retrieved_user.password, created_user.password);
+    }
+
+    #[test]
+    fn test_get_nonexistent_user() {
+        let state = AppState::new();
+        assert!(state.get_user(999).is_none());
+    }
+
+    #[test]
+    fn test_update_user() {
+        let state = AppState::new();
+
+        let user = state
+            .create_user(
+                "Alice".to_string(),
+                "alice@example.com".to_string(),
+                "password123".to_string(),
+            )
+            .expect("Failed to create user");
+
+        let update = UpdateUser {
+            name: Some("Alice Updated".to_string()),
+            email: Some("alice.updated@example.com".to_string()),
+            password: Some("newpassword123".to_string()),
+        };
+
+        let updated_user = state
+            .update_user(user.id, update)
+            .expect("Failed to update user");
+
+        assert_eq!(updated_user.id, user.id);
+        assert_eq!(updated_user.name, "Alice Updated");
+        assert_eq!(updated_user.email, "alice.updated@example.com");
+        assert!(!updated_user.password.is_empty());
+        assert!(updated_user.password.starts_with("$argon2"));
+        assert!(updated_user.updated_at > user.updated_at);
+    }
+
+    #[test]
+    fn test_update_user_partial() {
+        let state = AppState::new();
+
+        let user = state
+            .create_user(
+                "Alice".to_string(),
+                "alice@example.com".to_string(),
+                "password123".to_string(),
+            )
+            .expect("Failed to create user");
+
+        let original_password = user.password.clone();
+        let original_updated_at = user.updated_at;
+
+        let update = UpdateUser {
+            name: Some("Alice Updated".to_string()),
+            email: None,
+            password: None,
+        };
+
+        let updated_user = state
+            .update_user(user.id, update)
+            .expect("Failed to update user");
+
+        assert_eq!(updated_user.id, user.id);
+        assert_eq!(updated_user.name, "Alice Updated");
+        assert_eq!(updated_user.email, user.email); // 未改变
+        assert_eq!(updated_user.password, original_password); // 未改变
+        assert!(updated_user.updated_at > original_updated_at);
+    }
+
+    #[test]
+    fn test_update_nonexistent_user() {
+        let state = AppState::new();
+
+        let update = UpdateUser {
+            name: Some("Alice".to_string()),
+            email: None,
+            password: None,
+        };
+
+        let result = state.update_user(999, update);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "User not found");
+    }
+
+    #[test]
+    fn test_delete_user() {
+        let state = AppState::new();
+
+        let user = state
+            .create_user(
+                "Alice".to_string(),
+                "alice@example.com".to_string(),
+                "password123".to_string(),
+            )
+            .expect("Failed to create user");
+
+        assert_eq!(state.get_all_users().len(), 1);
+
+        let deleted = state.delete_user(user.id);
+        assert!(deleted);
+        assert_eq!(state.get_all_users().len(), 0);
+        assert!(state.get_user(user.id).is_none());
+    }
+
+    #[test]
+    fn test_delete_nonexistent_user() {
+        let state = AppState::new();
+        let deleted = state.delete_user(999);
+        assert!(!deleted);
+    }
+
+    #[test]
+    fn test_get_all_users() {
+        let state = AppState::new();
+
+        assert_eq!(state.get_all_users().len(), 0);
+
+        let user1 = state
+            .create_user(
+                "Alice".to_string(),
+                "alice@example.com".to_string(),
+                "password123".to_string(),
+            )
+            .expect("Failed to create user1");
+
+        let user2 = state
+            .create_user(
+                "Bob".to_string(),
+                "bob@example.com".to_string(),
+                "password456".to_string(),
+            )
+            .expect("Failed to create user2");
+
+        let all_users = state.get_all_users();
+        assert_eq!(all_users.len(), 2);
+
+        let ids: Vec<u64> = all_users.iter().map(|u| u.id).collect();
+        assert!(ids.contains(&user1.id));
+        assert!(ids.contains(&user2.id));
+    }
+
+    #[test]
+    fn test_password_hashing() {
+        let state = AppState::new();
+
+        let user1 = state
+            .create_user(
+                "Alice".to_string(),
+                "alice@example.com".to_string(),
+                "password123".to_string(),
+            )
+            .expect("Failed to create user1");
+
+        let user2 = state
+            .create_user(
+                "Bob".to_string(),
+                "bob@example.com".to_string(),
+                "password123".to_string(),
+            )
+            .expect("Failed to create user2");
+
+        // 相同密码应该产生不同的哈希值（因为不同的盐）
+        assert_ne!(user1.password, user2.password);
+
+        // 密码哈希应该以 $argon2 开头
+        assert!(user1.password.starts_with("$argon2"));
+        assert!(user2.password.starts_with("$argon2"));
+    }
+
+    #[test]
+    fn test_user_serialization() {
+        let state = AppState::new();
+
+        let user = state
+            .create_user(
+                "Alice".to_string(),
+                "alice@example.com".to_string(),
+                "password123".to_string(),
+            )
+            .expect("Failed to create user");
+
+        // 测试序列化（密码应该被跳过）
+        let json = serde_json::to_string(&user).expect("Failed to serialize user");
+        assert!(!json.contains("password123"));
+        assert!(json.contains("Alice"));
+        assert!(json.contains("alice@example.com"));
+
+        // 测试反序列化
+        let deserialized_user: User =
+            serde_json::from_str(&json).expect("Failed to deserialize user");
+        assert_eq!(deserialized_user.name, user.name);
+        assert_eq!(deserialized_user.email, user.email);
+        assert_eq!(deserialized_user.password, ""); // 密码字段为空
+    }
+
+    #[test]
+    fn test_concurrent_user_creation() {
+        use std::sync::Arc;
+        use std::thread;
+
+        let state = Arc::new(AppState::new());
+        let mut handles = vec![];
+
+        // 创建多个线程同时创建用户
+        for i in 0..10 {
+            let state_clone = Arc::clone(&state);
+            let handle = thread::spawn(move || {
+                state_clone
+                    .create_user(
+                        format!("User{}", i),
+                        format!("user{}@example.com", i),
+                        "password123".to_string(),
+                    )
+                    .expect("Failed to create user")
+            });
+            handles.push(handle);
+        }
+
+        // 等待所有线程完成
+        let users: Vec<User> = handles
+            .into_iter()
+            .map(|h| h.join().expect("Thread failed"))
+            .collect();
+
+        // 验证所有用户都被创建
+        assert_eq!(users.len(), 10);
+        assert_eq!(state.get_all_users().len(), 10);
+
+        // 验证ID是唯一的
+        let mut ids: Vec<u64> = users.iter().map(|u| u.id).collect();
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), 10);
     }
 }

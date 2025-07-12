@@ -27,7 +27,3 @@ tower-http = { version = "0.6.6", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rand_core = { version = "0.6.4", features = ["getrandom"] }
-
-[[bin]]
-name = "server"
-path = "examples/server.rs"
