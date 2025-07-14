@@ -1,0 +1,60 @@
+### 创建用户
+
+POST http://localhost:3000/users
+Content-Type: application/json
+
+{
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "password": "password123"
+}
+
+### 创建用户on 8080 端口
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+    "name": "John1 Doe",
+    "email": "john.doe@example.com",
+    "password": "password123"
+}
+
+
+### 创建用户on 8080 端口
+POST http://localhost:3001/users
+Content-Type: application/json
+
+{
+    "name": "John3 Doe",
+    "email": "john.doe@example.com",
+    "password": "password123"
+}
+
+### 获取用户 8080 端口
+
+GET http://localhost:8080/users
+Content-Type: application/json
+
+### 获取用户 8080 端口
+
+GET http://localhost:3001/users
+Content-Type: application/json
+
+
+### 获取用户
+
+GET http://localhost:3000/users
+Content-Type: application/json
+
+### 获取用户
+GET http://localhost:3000/users/1
+
+### 更新用户
+PUT http://localhost:3000/users/1
+Content-Type: application/json
+
+{
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "password": "password123"
+}
