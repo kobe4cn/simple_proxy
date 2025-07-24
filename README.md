@@ -20,7 +20,7 @@
 
 ## Overview
 
-`simple_proxy` is a production-ready dual-write reverse proxy server built on [Pingora](https://github.com/cloudflare/pingora), Cloudflare's high-performance proxy framework. It simultaneously forwards HTTP requests to two backend services, enabling seamless data migration validation, primary-backup consistency verification, and disaster recovery testing.
+`simple_proxy` is a dual-write reverse proxy server built on [Pingora](https://github.com/cloudflare/pingora), Cloudflare's high-performance proxy framework. It simultaneously forwards HTTP requests to two backend services, enabling seamless data migration validation, primary-backup consistency verification, and disaster recovery testing.
 
 ### Key Features
 
