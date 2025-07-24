@@ -26,7 +26,6 @@
 
 - **🔥 High Performance**: Built with Pingora for exceptional throughput and low latency
 - **🔄 Dual-Write Pattern**: Simultaneous request forwarding to primary and secondary backends
-- **🔐 Secure**: Argon2 password hashing and secure user management
 - **📊 Observable**: Built-in tracing and health check endpoints
 - **⚡ Async First**: Fully asynchronous architecture with Tokio runtime
 
